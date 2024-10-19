@@ -1417,7 +1417,7 @@ static switch_status_t read_packet(listener_t *listener, switch_event_t **event,
 			if (switch_test_flag(listener, LFLAG_EVENTS)) {
 				while (switch_queue_trypop(listener->event_queue, &pop) == SWITCH_STATUS_SUCCESS) {
 					char hbuf[512];
-					int * ebuflen =0;
+					int ebuflen =0;
 					switch_event_t *pevent = (switch_event_t *) pop;
 					char *etype;
 

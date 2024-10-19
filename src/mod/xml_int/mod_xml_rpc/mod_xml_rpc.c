@@ -565,7 +565,7 @@ void stop_hook_event_handler(switch_event_t *event) {
 }
 
 void event_handler(switch_event_t *event) {
-	char *json;
+	char *json = NULL;
 	int jsonlen = 0;
 	wsh_t *wsh = (wsh_t *)event->bind_user_data;
 	switch_event_serialize_json(event, &json, &jsonlen);

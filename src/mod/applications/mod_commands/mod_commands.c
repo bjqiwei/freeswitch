@@ -6461,7 +6461,7 @@ SWITCH_STANDARD_API(uuid_dump_function)
 			if ((psession = switch_core_session_locate(uuid))) {
 				switch_channel_t *channel;
 				switch_event_t *event;
-				char *buf;
+				char *buf = NULL;
 
 				channel = switch_core_session_get_channel(psession);
 

@@ -168,9 +168,10 @@ static void kill_sipp(void)
 }
 
 static void show_event(switch_event_t *event) {
-	char *str;
+	char *str = NULL;
+	int strlen = 0;
 	/*print the event*/
-	switch_event_serialize_json(event, &str);
+	switch_event_serialize_json(event, &str, &strlen);
 	if (str) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "%s\n", str);
 		switch_safe_free(str);
