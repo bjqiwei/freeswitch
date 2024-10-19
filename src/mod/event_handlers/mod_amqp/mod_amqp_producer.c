@@ -74,6 +74,7 @@ void mod_amqp_producer_event_handler(switch_event_t* evt)
 	mod_amqp_producer_profile_t *profile = (mod_amqp_producer_profile_t *)evt->bind_user_data;
 	switch_time_t now = switch_time_now();
 	switch_time_t reset_time;
+	int ebuflen = 0;
 
 	if (!profile) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Event without a profile %p %p\n", (void *)evt, (void *)evt->event_user_data);
@@ -95,7 +96,7 @@ void mod_amqp_producer_event_handler(switch_event_t* evt)
 
 	switch_malloc(amqp_message, sizeof(mod_amqp_message_t));
 
-	switch_event_serialize_json(evt, &amqp_message->pjson);
+	switch_event_serialize_json(evt, &amqp_message->pjson, &ebuflen);
 	mod_amqp_producer_routing_key(profile, amqp_message->routing_key, evt, profile->format_fields);
 
 	/* Queue the message to be sent by the worker thread, errors are reported only once per circuit breaker interval */

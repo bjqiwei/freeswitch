@@ -6479,7 +6479,8 @@ SWITCH_STANDARD_API(uuid_dump_function)
 							goto done;
 						}
 					} else if (!strcasecmp(format, "json")) {
-						switch_event_serialize_json(event, &buf);
+						int ebuflen = 0;
+						switch_event_serialize_json(event, &buf, &ebuflen);
 					} else {
 						switch_event_serialize(event, &buf, (switch_bool_t) strcasecmp(format, "plain"));
 					}

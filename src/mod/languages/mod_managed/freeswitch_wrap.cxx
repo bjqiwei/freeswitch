@@ -39908,10 +39908,11 @@ SWIGEXPORT int SWIGSTDCALL CSharp_FreeSWITCHfNative_switch_event_serialize_json_
   switch_event_t *arg1 = (switch_event_t *) 0 ;
   char **arg2 = (char **) 0 ;
   switch_status_t result;
+  int len = 0;
   
   arg1 = (switch_event_t *)jarg1; 
   arg2 = (char **)jarg2; 
-  result = (switch_status_t)switch_event_serialize_json(arg1,arg2);
+  result = (switch_status_t)switch_event_serialize_json(arg1,arg2, &len);
   jresult = (int)result; 
   return jresult;
 }

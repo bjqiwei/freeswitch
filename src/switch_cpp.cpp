@@ -376,7 +376,8 @@ SWITCH_DECLARE(const char *)Event::serialize(const char *format)
 			return "";
 		}
 	} else if (format && !strcasecmp(format, "json")) {
-		switch_event_serialize_json(event, &serialized_string);
+		int len = 0;
+		switch_event_serialize_json(event, &serialized_string, &len);
 		return serialized_string;
 	} else {
 		if (switch_event_serialize(event, &serialized_string, SWITCH_TRUE) == SWITCH_STATUS_SUCCESS) {

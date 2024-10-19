@@ -784,7 +784,6 @@ SWITCH_DECLARE(switch_status_t) switch_event_create_subclass_detailed(const char
 		(*event)->subclass_name = DUP(subclass_name);
 		switch_event_add_header_string(*event, SWITCH_STACK_BOTTOM, "Event-Subclass", subclass_name);
 	}
-	(*event)->event_id;
 	(*event)->use_count = 1;
 	return SWITCH_STATUS_SUCCESS;
 }
@@ -1856,20 +1855,52 @@ SWITCH_DECLARE(switch_status_t) switch_event_serialize_json_obj(switch_event_t *
 	return SWITCH_STATUS_SUCCESS;
 }
 
-SWITCH_DECLARE(switch_status_t) switch_event_serialize_json(switch_event_t *event, char **str)
+SWITCH_DECLARE(switch_status_t) switch_event_serialize_json(switch_event_t *event, char **str, int * len)
 {
-
-	cJSON *cj;
-	*str = NULL;
-
-	if (switch_event_serialize_json_obj(event, &cj) == SWITCH_STATUS_SUCCESS) {
-		*str = cJSON_PrintUnformatted(cj);
-		cJSON_Delete(cj);
-
-		return SWITCH_STATUS_SUCCESS;
+	switch_event_header_t* hp;
+	size_t buffer_size = 1024 * 64;
+	size_t used_buffer_size = 0;
+	if(*str == NULL){
+		*str = malloc(buffer_size);
 	}
+	used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, "{");
 
-	return SWITCH_STATUS_FALSE;
+	for (hp = event->headers; hp; hp = hp->next) {
+		if (hp->idx) {
+			used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, "\"%s\":[", hp->name);
+			for (int i = 0; i < hp->idx; i++) {
+				used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, "\"%s\",", hp->array[i]);
+			}
+			used_buffer_size --;
+			used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, "],");
+		}
+		else {
+			int rlen = switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, "\"%s\":\"%s\",", hp->name, hp->value);
+			used_buffer_size += rlen;
+		}
+	}
+	used_buffer_size--;
+	if (event->body) {
+		int blen = (int)strlen(event->body);
+		used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, ",\"Content - Length\":\"%d\"", blen);
+		used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, ",\"_body\":\"%s\"", event->body);
+	}
+	used_buffer_size += switch_snprintf(*str + used_buffer_size, buffer_size - used_buffer_size, "}");
+	*(*str + used_buffer_size) = 0;
+	*len = used_buffer_size;
+	return SWITCH_STATUS_SUCCESS;
+
+	//cJSON *cj;
+
+	//if (switch_event_serialize_json_obj(event, &cj) == SWITCH_STATUS_SUCCESS) {
+	//	*str = cJSON_PrintUnformatted(cj);
+	//	cJSON_Delete(cj);
+
+	//	return SWITCH_STATUS_SUCCESS;
+	//}
+
+	//return SWITCH_STATUS_FALSE;
+
 }
 
 static switch_xml_t add_xml_header(switch_xml_t xml, char *name, char *value, int offset)

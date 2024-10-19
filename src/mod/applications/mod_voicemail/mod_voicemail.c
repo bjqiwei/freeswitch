@@ -5219,12 +5219,13 @@ not implemented yet
 	} else {
 		switch_event_t *my_params = NULL;
 		char *ebuf = NULL;
+		int ebuflen = 0;
 
 		switch_event_create(&my_params, SWITCH_EVENT_REQUEST_PARAMS);
 		switch_event_add_header(my_params, SWITCH_STACK_BOTTOM, "VM-Preference-Greeting-File-Path", "%s", res);
 		switch_event_add_header(my_params, SWITCH_STACK_BOTTOM, "VM-Preference-Greeting-Slot", "%s", "Not Implemented yet");
 		switch_event_add_header(my_params, SWITCH_STACK_BOTTOM, "VM-Preference-Greeting-Selected", "%s", "True");
-		switch_event_serialize_json(my_params, &ebuf);
+		switch_event_serialize_json(my_params, &ebuf, &ebuflen);
 		switch_event_destroy(&my_params);
 
 		stream->write_function(stream, "%s", ebuf);
@@ -5393,6 +5394,7 @@ SWITCH_STANDARD_API(vm_fsdb_msg_list_function)
 	char *sql;
 	msg_lst_callback_t cbt = { 0 };
 	char *ebuf = NULL;
+	int ebuflen = 0;
 
 	const char *id = NULL, *domain = NULL, *profile_name = NULL, *folder = NULL, *msg_type = NULL, *msg_order = NULL;
 	vm_profile_t *profile = NULL;
@@ -5456,7 +5458,7 @@ SWITCH_STANDARD_API(vm_fsdb_msg_list_function)
 	profile_rwunlock(profile);
 
 	switch_event_add_header(cbt.my_params, SWITCH_STACK_BOTTOM, "VM-List-Count", "%"SWITCH_SIZE_T_FMT, cbt.len);
-	switch_event_serialize_json(cbt.my_params, &ebuf);
+	switch_event_serialize_json(cbt.my_params, &ebuf, &ebuflen);
 	switch_event_destroy(&cbt.my_params);
 
 	switch_safe_free(sql);
@@ -5890,6 +5892,7 @@ SWITCH_STANDARD_API(vm_fsdb_msg_get_function)
 	char *sql;
 	msg_get_callback_t cbt = { 0 };
 	char *ebuf = NULL;
+	int ebuflen = 0;
 	char *uuid = NULL;
 
 	const char *id = NULL, *domain = NULL, *profile_name = NULL;
@@ -5936,7 +5939,7 @@ SWITCH_STANDARD_API(vm_fsdb_msg_get_function)
 
 	profile_rwunlock(profile);
 
-	switch_event_serialize_json(cbt.my_params, &ebuf);
+	switch_event_serialize_json(cbt.my_params, &ebuf, &ebuflen);
 	switch_event_destroy(&cbt.my_params);
 
 	switch_safe_free(sql);
@@ -6125,6 +6128,7 @@ SWITCH_STANDARD_API(vm_fsdb_msg_count_function)
 	msg_cnt_callback_t cbt = { 0 };
 	switch_event_t *my_params = NULL;
 	char *ebuf = NULL;
+	int ebuflen = 0;
 
 	const char *id = NULL, *domain = NULL, *profile_name = NULL, *folder = NULL;
 	vm_profile_t *profile = NULL;
@@ -6177,7 +6181,7 @@ SWITCH_STANDARD_API(vm_fsdb_msg_count_function)
 	switch_event_add_header(my_params, SWITCH_STACK_BOTTOM, "VM-Total-New-Urgent-Messages", "%d", cbt.total_new_urgent_messages);
 	switch_event_add_header(my_params, SWITCH_STACK_BOTTOM, "VM-Total-Saved-Messages", "%d", cbt.total_saved_messages + cbt.total_saved_urgent_messages);
 	switch_event_add_header(my_params, SWITCH_STACK_BOTTOM, "VM-Total-Saved-Urgent-Messages", "%d", cbt.total_saved_urgent_messages);
-	switch_event_serialize_json(my_params, &ebuf);
+	switch_event_serialize_json(my_params, &ebuf, &ebuflen);
 	switch_event_destroy(&my_params);
 
 	switch_safe_free(sql);

@@ -316,7 +316,7 @@ SWITCH_DECLARE(switch_status_t) switch_event_free_subclass_detailed(const char *
 SWITCH_DECLARE(switch_status_t) switch_event_binary_deserialize(switch_event_t **eventp, void **data, switch_size_t len, switch_bool_t duplicate);
 SWITCH_DECLARE(switch_status_t) switch_event_binary_serialize(switch_event_t *event, void **data, switch_size_t *len);
 SWITCH_DECLARE(switch_status_t) switch_event_serialize(switch_event_t *event, char **str, switch_bool_t encode);
-SWITCH_DECLARE(switch_status_t) switch_event_serialize_json(switch_event_t *event, char **str);
+SWITCH_DECLARE(switch_status_t) switch_event_serialize_json(switch_event_t *event, char **str, int *len);
 SWITCH_DECLARE(switch_status_t) switch_event_serialize_json_obj(switch_event_t *event, cJSON **json);
 SWITCH_DECLARE(switch_status_t) switch_event_create_json(switch_event_t **event, const char *json);
 SWITCH_DECLARE(switch_status_t) switch_event_create_brackets(char *data, char a, char b, char c, switch_event_t **event, char **new_data, switch_bool_t dup);

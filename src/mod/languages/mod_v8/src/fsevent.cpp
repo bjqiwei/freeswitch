@@ -302,7 +302,8 @@ JS_EVENT_FUNCTION_IMPL(GetType)
 JS_EVENT_FUNCTION_IMPL(Serialize)
 {
 	HandleScope handle_scope(info.GetIsolate());
-	char *buf;
+	char *buf =	 NULL;
+	int buflen = 0;
 	uint8_t isxml = 0, isjson = 0;
 
 	if (!_event) {
@@ -332,7 +333,7 @@ JS_EVENT_FUNCTION_IMPL(Serialize)
 			info.GetReturnValue().Set(false);
 		}
 	} else if (isjson) {
-		if (switch_event_serialize_json(_event, &buf) == SWITCH_STATUS_SUCCESS) {
+		if (switch_event_serialize_json(_event, &buf, &buflen) == SWITCH_STATUS_SUCCESS) {
 			info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), js_safe_str(buf)));
 			switch_safe_free(buf);
 		}

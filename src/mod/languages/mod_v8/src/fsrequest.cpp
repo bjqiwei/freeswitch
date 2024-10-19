@@ -129,7 +129,8 @@ JS_REQUEST_FUNCTION_IMPL(DumpEnv)
 		}
 	} else if (!strcasecmp(how.c_str(), "json")) {
 		char *buf = NULL;
-		if (switch_event_serialize_json(this->_stream->param_event, &buf) == SWITCH_STATUS_SUCCESS) {
+		int buflen = 0;
+		if (switch_event_serialize_json(this->_stream->param_event, &buf, &buflen) == SWITCH_STATUS_SUCCESS) {
 			info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), js_safe_str(buf)));
 			switch_safe_free(buf);
 			return;

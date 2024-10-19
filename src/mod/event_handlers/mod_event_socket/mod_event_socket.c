@@ -263,7 +263,7 @@ static switch_status_t expire_listener(listener_t ** listener)
 	switch_mutex_unlock(l->filter_mutex);
 	switch_thread_rwlock_unlock(l->rwlock);
 	switch_core_destroy_memory_pool(&l->pool);
-
+	switch_safe_free(l->ebuf);
 	*listener = NULL;
 	return SWITCH_STATUS_SUCCESS;
 }
@@ -1417,6 +1417,7 @@ static switch_status_t read_packet(listener_t *listener, switch_event_t **event,
 			if (switch_test_flag(listener, LFLAG_EVENTS)) {
 				while (switch_queue_trypop(listener->event_queue, &pop) == SWITCH_STATUS_SUCCESS) {
 					char hbuf[512];
+					int * ebuflen =0;
 					switch_event_t *pevent = (switch_event_t *) pop;
 					char *etype;
 
@@ -1426,7 +1427,7 @@ static switch_status_t read_packet(listener_t *listener, switch_event_t **event,
 						switch_event_serialize(pevent, &listener->ebuf, SWITCH_TRUE);
 					} else if (listener->format == EVENT_FORMAT_JSON) {
 						etype = "json";
-						switch_event_serialize_json(pevent, &listener->ebuf);
+						switch_event_serialize_json(pevent, &listener->ebuf, &ebuflen);
 					} else {
 						switch_xml_t xml;
 						etype = "xml";
@@ -1442,17 +1443,19 @@ static switch_status_t read_packet(listener_t *listener, switch_event_t **event,
 
 					switch_assert(listener->ebuf);
 
-					len = strlen(listener->ebuf);
+					len = ebuflen ? ebuflen: strlen(listener->ebuf);
 
 					switch_snprintf(hbuf, sizeof(hbuf), "Content-Length: %" SWITCH_SSIZE_T_FMT "\n" "Content-Type: text/event-%s\n" "\n", len, etype);
 
 					len = strlen(hbuf);
 					switch_socket_send(listener->sock, hbuf, &len);
 
-					len = strlen(listener->ebuf);
+					len = ebuflen ? ebuflen : strlen(listener->ebuf);
 					switch_socket_send(listener->sock, listener->ebuf, &len);
 
-					switch_safe_free(listener->ebuf);
+					if(listener->format != EVENT_FORMAT_JSON){
+						switch_safe_free(listener->ebuf);
+					}
 
 				  endloop:
 
