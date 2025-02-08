@@ -407,7 +407,9 @@ static void event_handler(switch_event_t *event)
 					}
 					//switch_event_destroy(&clone);
 					clone->use_count -= 1;
-
+					if (clone->use_count <= 0) { 
+						switch_event_destroy(&clone);
+					}
 				}
 			} else {
 				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(l->session), SWITCH_LOG_ERROR, "Memory Error!\n");
@@ -1122,7 +1124,10 @@ SWITCH_STANDARD_API(event_sink_function)
 			}
 
 			switch_safe_free(listener->ebuf);
-			switch_event_destroy(&pevent);
+			pevent->use_count -= 1;
+			if (pevent->use_count <= 0) {
+				switch_event_destroy(&pevent); 
+			};
 		}
 
 		if (listener->format == EVENT_FORMAT_JSON) {
@@ -1138,7 +1143,10 @@ SWITCH_STANDARD_API(event_sink_function)
 		}
 
 		if (pevent) {
-			switch_event_destroy(&pevent);
+			pevent->use_count -= 1;
+			if (pevent->use_count <= 0) {
+				switch_event_destroy(&pevent); 
+			}
 		}
 
 		switch_thread_rwlock_unlock(listener->rwlock);
@@ -1452,11 +1460,13 @@ static switch_status_t read_packet(listener_t *listener, switch_event_t **event,
 					len = strlen(listener->ebuf);
 					switch_socket_send(listener->sock, listener->ebuf, &len);
 
-						switch_safe_free(listener->ebuf);
+					switch_safe_free(listener->ebuf);
 
 				  endloop:
-
-					switch_event_destroy(&pevent);
+					pevent->use_count -= 1;
+					if (pevent->use_count <= 0) { 
+						switch_event_destroy(&pevent); 
+					}
 				}
 			}
 		}
