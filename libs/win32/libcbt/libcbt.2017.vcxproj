@@ -109,6 +109,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(SolutionDir)src\mod\endpoints\mod_gsmopen\libctb-0.16\include</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4311;4302;4800;4101;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
