@@ -51,8 +51,8 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <TargetName>pthreadVC2</TargetName>
-    <OutDir Condition="'$(Platform)'=='Win32'">$(Configuration)\</OutDir>
-    <OutDir Condition="'$(Platform)'=='x64'">$(Platform)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Platform)'=='Win32'">$(SolutionDir)$(PlatformName)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Platform)'=='x64'">$(SolutionDir)$(PlatformName)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
