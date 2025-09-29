@@ -35,7 +35,6 @@
 #include <v8.h>
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
 #include <libplatform/libplatform.h>
-#include <v8-util.h>
 #endif
 
 #include <string>
@@ -64,10 +63,10 @@
 		} else {\
 			int line;\
 			char *file = JSMain::GetStackInfo(info.GetIsolate(), &line);\
-			v8::String::Utf8Value str(info.Holder());\
+			v8::String::Utf8Value str(info.GetIsolate(), info.Holder());\
 			switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, "mod_v8", line, NULL, SWITCH_LOG_DEBUG, "No valid internal data available for %s when calling %s\n", *str ? *str : "[unknown]", #class_name "::" #method_name "()");\
 			free(file);\
-			info.GetReturnValue().Set(false);\
+			info.GetReturnValue().Set(v8::False(info.GetIsolate()));\
 		}\
 	}\
 	void method_name##Impl(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -83,10 +82,10 @@
 		} else {\
 			int line;\
 			char *file = JSMain::GetStackInfo(info.GetIsolate(), &line);\
-			v8::String::Utf8Value str(info.Holder());\
+			v8::String::Utf8Value str(info.GetIsolate(), info.Holder());\
 			switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, "mod_v8", line, NULL, SWITCH_LOG_DEBUG, "No valid internal data available for %s when calling %s\n", *str ? *str : "[unknown]", #class_name "::" #method_name "()");\
 			free(file);\
-			info.GetReturnValue().Set(false);\
+			info.GetReturnValue().Set(v8::False(info.GetIsolate()));\
 		}\
 	}\
 	void method_name##Impl(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
@@ -102,10 +101,10 @@
 		} else {\
 			int line;\
 			char *file = JSMain::GetStackInfo(info.GetIsolate(), &line);\
-			v8::String::Utf8Value str(info.Holder());\
+			v8::String::Utf8Value str(info.GetIsolate(),info.Holder());\
 			switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, "mod_v8", line, NULL, SWITCH_LOG_DEBUG, "No valid internal data available for %s when calling %s\n", *str ? *str : "[unknown]", #class_name "::" #method_name "()");\
 			free(file);\
-			info.GetReturnValue().Set(false);\
+			info.GetReturnValue().Set(v8::False(info.GetIsolate()));\
 		}\
 	}\
 	void method_name##Impl(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -324,7 +323,7 @@ public:
 	const std::string ExecuteString(const std::string& scriptData, const std::string& fileName, bool *resultIsError);
 
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
-	static void Initialize(v8::Platform **platform);					/* Initialize the V8 engine */
+	static void Initialize(std::unique_ptr<v8::Platform>* platform);					/* Initialize the V8 engine */
 #else
 	static void Initialize();											/* Initialize the V8 engine */
 #endif

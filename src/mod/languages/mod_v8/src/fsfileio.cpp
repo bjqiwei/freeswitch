@@ -79,8 +79,8 @@ void *FSFileIO::Construct(const v8::FunctionCallbackInfo<Value>& info)
 
 	if (info.Length() > 1) {
 		const char *path, *flags_str;
-		String::Utf8Value str1(info[0]);
-		String::Utf8Value str2(info[1]);
+		String::Utf8Value str1(info.GetIsolate(), info[0]);
+		String::Utf8Value str2(info.GetIsolate(), info[1]);
 		path = js_safe_str(*str1);
 		flags_str = js_safe_str(*str2);
 
@@ -113,7 +113,7 @@ void *FSFileIO::Construct(const v8::FunctionCallbackInfo<Value>& info)
 		if (switch_file_open(&fd, path, flags, SWITCH_FPROT_UREAD | SWITCH_FPROT_UWRITE, pool) != SWITCH_STATUS_SUCCESS) {
 			switch_core_destroy_memory_pool(&pool);
 			char *err = switch_mprintf("Cannot Open File: %s", path);
-			info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), err));
+			info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), err).ToLocalChecked());
 			free(err);
 			return NULL;
 		}
@@ -127,7 +127,7 @@ void *FSFileIO::Construct(const v8::FunctionCallbackInfo<Value>& info)
 		return fio;
 	}
 
-	info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid Args"));
+	info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Invalid Args"));
 	return NULL;
 }
 
@@ -143,7 +143,7 @@ JS_FILEIO_FUNCTION_IMPL(Read)
 	}
 
 	if (info.Length() > 0) {
-		bytes = info[0]->Int32Value();
+		bytes = info[0]->Int32Value(info.GetIsolate()->GetCurrentContext()).ToChecked();
 	}
 
 	if (bytes) {
@@ -169,7 +169,7 @@ JS_FILEIO_FUNCTION_IMPL(GetData)
 	if (!_buflen || !_buf) {
 		info.GetReturnValue().Set(false);
 	} else {
-		info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), _buf));
+		info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), _buf).ToLocalChecked());
 	}
 }
 
@@ -185,7 +185,7 @@ JS_FILEIO_FUNCTION_IMPL(Write)
 
 	if (info.Length() > 0) {
 		char *data = NULL;
-		String::Utf8Value str(info[0]);
+		String::Utf8Value str(info.GetIsolate(), info[0]);
 		data = *str;
 
 		if (data) {
@@ -201,19 +201,19 @@ JS_FILEIO_FUNCTION_IMPL(Write)
 JS_FILEIO_GET_PROPERTY_IMPL(GetProperty)
 {
 	HandleScope handle_scope(info.GetIsolate());
-	String::Utf8Value str(property);
+	String::Utf8Value str(info.GetIsolate(), property);
 	const char *prop = js_safe_str(*str);
 
 	if (!strcmp(prop, "path")) {
 		if (_path) {
-			info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), _path));
+			info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), _path).ToLocalChecked());
 		} else {
 			info.GetReturnValue().Set(false);
 		}
 	} else if (!strcmp(prop, "open")) {
 		info.GetReturnValue().Set(_fd ? true : false);
 	} else {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Bad property"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Bad property"));
 	}
 }
 

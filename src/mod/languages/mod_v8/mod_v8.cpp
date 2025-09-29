@@ -95,6 +95,7 @@
 #include "fseventhandler.hpp"
 
 #include <set>
+#include <map>
 
 using namespace std;
 using namespace v8;
@@ -122,7 +123,7 @@ typedef struct {
 	set<FSEventHandler *> *event_handlers;
 	char *xml_handler;
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
-	v8::Platform *v8platform;
+	std::unique_ptr<v8::Platform> v8platform;
 	switch_hash_t *compiled_script_hash;
 	switch_mutex_t *compiled_script_hash_mutex;
 	map<string, Isolate *> *task_manager;
@@ -421,7 +422,7 @@ static int env_init(JSMain *js)
 static void v8_error(Isolate* isolate, TryCatch* try_catch)
 {
 	HandleScope handle_scope(isolate);
-	String::Utf8Value exception(try_catch->Exception());
+	String::Utf8Value exception(isolate, try_catch->Exception());
 	const char *exception_string = js_safe_str(*exception);
 	Handle<Message> message = try_catch->Message();
 	const char *msg = "";
@@ -437,16 +438,16 @@ static void v8_error(Isolate* isolate, TryCatch* try_catch)
 	}
 
 	if (!message.IsEmpty()) {
-		String::Utf8Value fname(message->GetScriptResourceName());
+		String::Utf8Value fname(isolate, message->GetScriptResourceName());
 
 		if (*fname) {
 			filename = *fname;
 		}
 
-		line = message->GetLineNumber();
+		line = message->GetLineNumber(isolate->GetCurrentContext()).ToChecked();
 		msg = exception_string;
 
-		String::Utf8Value sourceline(message->GetSourceLine());
+		String::Utf8Value sourceline(isolate, message->GetSourceLine(isolate->GetCurrentContext()).ToLocalChecked());
 		if (*sourceline) {
 			text = *sourceline;
 		}
@@ -529,7 +530,7 @@ void LoadScript(MaybeLocal<v8::Script> *v8_script, Isolate *isolate, const char 
 		Do not cache inline scripts
 	*/
 	if (!switch_true(globals.script_caching) || !strcasecmp(script_file, "inline") || zstr(script_file)) {
-		options = ScriptCompiler::kNoCompileOptions;
+		options = ScriptCompiler::kEagerCompile;
 		perf_log("Javascript caching is disabled.\n", script_file);
 	} else {
 		options = ScriptCompiler::kConsumeCodeCache;
@@ -557,16 +558,16 @@ void LoadScript(MaybeLocal<v8::Script> *v8_script, Isolate *isolate, const char 
 
 		}
 		
-		if (!cached_data) options = ScriptCompiler::kProduceCodeCache;
+		if (!cached_data) options = ScriptCompiler::kEagerCompile;
 
 	}
 
-	ScriptCompiler::Source source(String::NewFromUtf8(isolate, script_data), cached_data);
+	ScriptCompiler::Source source(String::NewFromUtf8(isolate, script_data).ToLocalChecked(), cached_data);
 	*v8_script = ScriptCompiler::Compile(isolate->GetCurrentContext(), &source, options);	
 
 	if (!v8_script->IsEmpty()) {
 
-		if (options == ScriptCompiler::kProduceCodeCache && !source.GetCachedData()->rejected) {
+		if (/*options == ScriptCompiler::kProduceCompileHints && */source.GetCachedData() && !source.GetCachedData()->rejected) {
 			int length = source.GetCachedData()->length;
 			uint8_t* raw_cached_data = new uint8_t[length];
 			v8_compiled_script_cache_t *compiled_script_cache = new v8_compiled_script_cache_t;
@@ -583,7 +584,7 @@ void LoadScript(MaybeLocal<v8::Script> *v8_script, Isolate *isolate, const char 
 
 		} else if (options == ScriptCompiler::kConsumeCodeCache) {
 
-			if (source.GetCachedData()->rejected) {
+			if (source.GetCachedData() && source.GetCachedData()->rejected) {
 				perf_log("Javascript ['%s'] cache was rejected.\n", script_file);
 				switch_core_hash_delete_locked(globals.compiled_script_hash, script_file, globals.compiled_script_hash_mutex);
 			} else {
@@ -673,7 +674,7 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 				/* Add all global functions */
 				for (size_t i = 0; i < js->GetExtenderFunctions().size(); i++) {
 					js_function_t *proc = js->GetExtenderFunctions()[i];
-					global->Set(String::NewFromUtf8(isolate, proc->name), FunctionTemplate::New(isolate, proc->func));
+					global->Set(String::NewFromUtf8(isolate, proc->name).ToLocalChecked(), FunctionTemplate::New(isolate, proc->func));
 				}
 
 				// Create a new context.
@@ -721,7 +722,7 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 						obj->RegisterInstance(isolate, "session", true);
 					} else {
 						/* Add a session object as a boolean instead, just to make it safe to check if it exists as expected */
-						context->Global()->Set(String::NewFromUtf8(isolate, "session"), Boolean::New(isolate, false));
+						context->Global()->Set(context, String::NewFromUtf8Literal(isolate, "session"), Boolean::New(isolate, false));
 					}
 
 					if (v8_event) {
@@ -744,12 +745,12 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 
 						Handle<Array> XML_REQUEST = Array::New(isolate, 4);
 
-						XML_REQUEST->Set(String::NewFromUtf8(isolate, "key_name"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->key_name)));
-						XML_REQUEST->Set(String::NewFromUtf8(isolate, "key_value"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->key_value)));
-						XML_REQUEST->Set(String::NewFromUtf8(isolate, "section"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->section)));
-						XML_REQUEST->Set(String::NewFromUtf8(isolate, "tag_name"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->tag_name)));
+						XML_REQUEST->Set(context, String::NewFromUtf8Literal(isolate, "key_name"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->key_name)).ToLocalChecked());
+						XML_REQUEST->Set(context, String::NewFromUtf8Literal(isolate, "key_value"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->key_value)).ToLocalChecked());
+						XML_REQUEST->Set(context, String::NewFromUtf8Literal(isolate, "section"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->section)).ToLocalChecked());
+						XML_REQUEST->Set(context, String::NewFromUtf8Literal(isolate, "tag_name"), String::NewFromUtf8(isolate, js_safe_str(xml_handler->tag_name)).ToLocalChecked());
 
-						context->Global()->Set(String::NewFromUtf8(isolate, "XML_REQUEST"), XML_REQUEST);
+						context->Global()->Set(context, String::NewFromUtf8Literal(isolate, "XML_REQUEST"), XML_REQUEST);
 
 						if (xml_handler->params) {
 							FSEvent::New(xml_handler->params, "params", js);
@@ -767,10 +768,10 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 						// Add arguments before running script.
 						Local<Array> arguments = Array::New(isolate, argc);
 						for (int y = 0; y < argc; y++) {
-							arguments->Set(Integer::New(isolate, y), String::NewFromUtf8(isolate, argv[y]));
+							arguments->Set(context, Integer::New(isolate, y), String::NewFromUtf8(isolate, argv[y]).ToLocalChecked());
 						}
-						context->Global()->Set(String::NewFromUtf8(isolate, "argv"), arguments);
-						context->Global()->Set(String::NewFromUtf8(isolate, "argc"), Integer::New(isolate, argc));
+						context->Global()->Set(context, String::NewFromUtf8Literal(isolate, "argv"), arguments);
+						context->Global()->Set(context, String::NewFromUtf8Literal(isolate, "argc"), Integer::New(isolate, argc));
 					}
 
 					const char *script_data = NULL;
@@ -806,7 +807,7 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 						/* Store our base directory in variable 'scriptPath' */
 						char *scriptPath = v8_get_script_path(script_file);
 						if (scriptPath) {
-							context->Global()->Set(String::NewFromUtf8(isolate, "scriptPath"), String::NewFromUtf8(isolate, scriptPath));
+							context->Global()->Set(context, String::NewFromUtf8Literal(isolate, "scriptPath"), String::NewFromUtf8(isolate, scriptPath).ToLocalChecked());
 							switch_safe_free(scriptPath);
 						}
 
@@ -819,8 +820,8 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 						LoadScript(&v8_script, isolate, script_data, script_file);
 #else
 						// Create a string containing the JavaScript source code.
-						Handle<String> source = String::NewFromUtf8(isolate, script_data);
-						Handle<Script> v8_script = Script::Compile(source, Local<Value>::New(isolate, String::NewFromUtf8(isolate, script_file)));
+						Handle<String> source = String::NewFromUtf8Literal(isolate, script_data);
+						Handle<Script> v8_script = Script::Compile(source, Local<Value>::New(isolate, String::NewFromUtf8Literal(isolate, script_file)));
 #endif
 
 						if (try_catch.HasCaught()) {
@@ -838,7 +839,9 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 							Handle<Value> script_result;
 
 							if (!v8_script.IsEmpty()) {
-								script_result = v8_script.ToLocalChecked()->Run();
+								auto ret = v8_script.ToLocalChecked()->Run(context);
+								if(!ret.IsEmpty())
+									script_result = ret.ToLocalChecked();
 							}
 
 							switch_mutex_lock(globals.mutex);
@@ -861,7 +864,7 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 
 								if (!script_result.IsEmpty()) {
 									// Return result as string
-									String::Utf8Value ascii(script_result);
+									String::Utf8Value ascii(isolate, script_result);
 									if (*ascii) {
 										res = *ascii;
 									}
@@ -869,8 +872,8 @@ static int v8_parse_and_execute(switch_core_session_t *session, const char *inpu
 
 								if (xml_handler)
 								{
-									Local<Value> value = context->Global()->Get(String::NewFromUtf8(isolate, "XML_STRING"));
-									String::Utf8Value str(value);
+									Local<Value> value = context->Global()->Get(context, String::NewFromUtf8Literal(isolate, "XML_STRING")).ToLocalChecked();
+									String::Utf8Value str(isolate, value);
 									if (strcmp(js_safe_str(*str), "undefined"))
 									{
 										xml_handler->XML_STRING = strdup(js_safe_str(*str));
@@ -1559,7 +1562,7 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_v8_shutdown)
 	switch_mutex_destroy(globals.event_mutex);
 
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
-	delete globals.v8platform;
+	globals.v8platform.reset();
 
 	switch_core_hash_destroy(&globals.compiled_script_hash);
 	switch_mutex_destroy(globals.compiled_script_hash_mutex);

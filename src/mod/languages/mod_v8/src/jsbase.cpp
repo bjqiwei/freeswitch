@@ -69,7 +69,7 @@ JSBase::~JSBase(void)
 	}
 
 	/* If the object is still alive inside V8, set the internal field to NULL. But only if we're actually inside a JS context */
-	if (!persistentHandle->IsNearDeath() && !GetIsolate()->GetCurrentContext().IsEmpty() && (!js || !js->GetForcedTermination())) {
+	if (/*!persistentHandle->IsNearDeath() && */!GetIsolate()->GetCurrentContext().IsEmpty() && (!js || !js->GetForcedTermination())) {
 		Handle<Object> jsObj = GetJavaScriptObject();
 		jsObj->SetInternalField(0, Null(GetIsolate()));
 	}
@@ -107,7 +107,7 @@ void JSBase::AddInstance(Isolate *isolate, const Handle<Object>& handle, const H
 #else
 	obj->persistentHandle->SetWeak<JSBase>(obj, WeakCallback);
 #endif
-	obj->persistentHandle->MarkIndependent();
+	//obj->persistentHandle->MarkIndependent();
 }
 
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
@@ -143,14 +143,14 @@ void JSBase::CreateInstance(const v8::FunctionCallbackInfo<Value>& args)
 	bool constructorFailed = false;
 
 	if (!args.IsConstructCall()) {
-		args.GetIsolate()->ThrowException(String::NewFromUtf8(args.GetIsolate(), "Seems you forgot the 'new' operator."));
+		args.GetIsolate()->ThrowException(String::NewFromUtf8Literal(args.GetIsolate(), "Seems you forgot the 'new' operator."));
 		return;
 	}
 
 	if (args[0]->IsExternal()) {
 		// The argument is an existing object, just use that.
 		external = Handle<External>::Cast(args[0]);
-		autoDestroy = args[1]->BooleanValue();
+		autoDestroy = args[1]->BooleanValue(args.GetIsolate());
 	} else {
 		// Create a new C++ instance
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
@@ -178,7 +178,7 @@ void JSBase::CreateInstance(const v8::FunctionCallbackInfo<Value>& args)
 		// Return the newly created object
 		args.GetReturnValue().Set(args.This());
 	} else if (!constructorFailed) {
-		args.GetIsolate()->ThrowException(String::NewFromUtf8(args.GetIsolate(), "This class cannot be created from javascript."));
+		args.GetIsolate()->ThrowException(String::NewFromUtf8Literal(args.GetIsolate(), "This class cannot be created from javascript."));
 	} else {
 		/* Use whatever was set from the constructor */
 	}
@@ -193,7 +193,7 @@ void JSBase::Register(Isolate *isolate, const js_class_definition_t *desc)
 
 	// Create function template for our constructor it will call the JSBase::createInstance method
 	Handle<FunctionTemplate> function = FunctionTemplate::New(isolate, JSBase::CreateInstance, data);	
-	function->SetClassName(String::NewFromUtf8(isolate, desc->name));
+	function->SetClassName(String::NewFromUtf8(isolate, desc->name).ToLocalChecked());
 
 	// Make room for saving the C++ object reference somewhere
 	function->InstanceTemplate()->SetInternalFieldCount(1);
@@ -201,13 +201,13 @@ void JSBase::Register(Isolate *isolate, const js_class_definition_t *desc)
 	// Add methods to the object
 	for (int i = 0;; i++) {
 		if (!desc->functions[i].func) break;
-		function->InstanceTemplate()->Set(String::NewFromUtf8(isolate, desc->functions[i].name), FunctionTemplate::New(isolate, desc->functions[i].func));
+		function->InstanceTemplate()->Set(String::NewFromUtf8(isolate, desc->functions[i].name).ToLocalChecked(), FunctionTemplate::New(isolate, desc->functions[i].func));
 	}
 
 	// Add properties to the object
 	for (int i = 0;; i++) {
 		if (!desc->properties[i].get) break;
-		function->InstanceTemplate()->SetAccessor(String::NewFromUtf8(isolate, desc->properties[i].name), desc->properties[i].get, desc->properties[i].set);
+		function->InstanceTemplate()->SetAccessor(String::NewFromUtf8(isolate, desc->properties[i].name).ToLocalChecked(), desc->properties[i].get, desc->properties[i].set);
 	}
 
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
@@ -216,7 +216,7 @@ void JSBase::Register(Isolate *isolate, const js_class_definition_t *desc)
 #endif
 
 	// Set the function in the global scope, to make it available
-	global->Set(v8::String::NewFromUtf8(isolate, desc->name), function->GetFunction());
+	global->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, desc->name).ToLocalChecked(), function->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
 }
 
 void JSBase::RegisterInstance(Isolate *isolate, string name, bool autoDestroy)
@@ -225,7 +225,7 @@ void JSBase::RegisterInstance(Isolate *isolate, string name, bool autoDestroy)
 	Local<Context> context = isolate->GetCurrentContext();
 	Handle<Object> global = context->Global();
 
-	Local<Function> func = Local<Function>::Cast(global->Get(v8::String::NewFromUtf8(isolate, this->GetJSClassName().c_str())));
+	Local<Function> func = Local<Function>::Cast(global->Get(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, this->GetJSClassName().c_str()).ToLocalChecked()).ToLocalChecked());
 
 	// Add the C++ instance as an argument, so it won't try to create another one.
 	Handle<Value> args[] = { External::New(isolate, this), Boolean::New(isolate, autoDestroy) };
@@ -233,7 +233,7 @@ void JSBase::RegisterInstance(Isolate *isolate, string name, bool autoDestroy)
 
 	// Add the instance to JavaScript.
 	if (name.size() > 0) {
-		global->Set(String::NewFromUtf8(isolate, name.c_str()), newObj);
+		global->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, name.c_str()).ToLocalChecked(), newObj);
 	}
 }
 
@@ -263,7 +263,7 @@ Handle<Function> JSBase::GetFunctionFromArg(Isolate *isolate, const Local<Value>
 		Handle<String> tmp = Handle<String>::Cast(arg);
 		if (!tmp.IsEmpty() && *tmp) {
 			// Fetch the actual function pointer from the global context (by function name)
-			Handle<Value> val = isolate->GetCurrentContext()->Global()->Get(tmp);
+			Handle<Value> val = isolate->GetCurrentContext()->Global()->Get(isolate->GetCurrentContext(), tmp).ToLocalChecked();
 			if (!val.IsEmpty() && val->IsFunction()) {
 				func = Handle<Function>::Cast(val);
 			}
@@ -279,7 +279,7 @@ Handle<Function> JSBase::GetFunctionFromArg(Isolate *isolate, const Local<Value>
 
 void JSBase::DefaultSetProperty(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
 {
-	info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), "this property cannot be changed!"));
+	info.GetIsolate()->ThrowException(v8::String::NewFromUtf8Literal(info.GetIsolate(), "this property cannot be changed!"));
 }
 
 /* For Emacs:

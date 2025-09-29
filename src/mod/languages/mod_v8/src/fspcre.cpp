@@ -70,8 +70,8 @@ JS_PCRE_FUNCTION_IMPL(Compile)
 	const char *string, *regex_string;
 
 	if (info.Length() > 1) {
-		String::Utf8Value str1(info[0]);
-		String::Utf8Value str2(info[1]);
+		String::Utf8Value str1(info.GetIsolate(), info[0]);
+		String::Utf8Value str2(info.GetIsolate(), info[1]);
 		string = js_safe_str(*str1);
 		regex_string = js_safe_str(*str2);
 		switch_regex_safe_free(this->_re);
@@ -81,7 +81,7 @@ JS_PCRE_FUNCTION_IMPL(Compile)
 												 sizeof(this->_ovector) / sizeof(this->_ovector[0]));
 		info.GetReturnValue().Set(this->_proceed ? true : false);
 	} else {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid args"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid args").ToLocalChecked());
 	}
 }
 
@@ -92,34 +92,34 @@ JS_PCRE_FUNCTION_IMPL(Substitute)
 	char *substituted;
 
 	if (!this->_proceed) {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "REGEX is not compiled or has no matches"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "REGEX is not compiled or has no matches"));
 		return;
 	}
 
 	if (info.Length() > 0) {
 		uint32_t len;
-		String::Utf8Value str(info[0]);
+		String::Utf8Value str(info.GetIsolate(), info[0]);
 		subst_string = js_safe_str(*str);
 		len = (uint32_t) (strlen(this->_str) + strlen(subst_string) + 10) * this->_proceed;
 		substituted = (char *)malloc(len);
 		switch_assert(substituted != NULL);
 		switch_perform_substitution(this->_re, this->_proceed, subst_string, this->_str, substituted, len, this->_ovector);
-		info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), substituted));
+		info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), substituted).ToLocalChecked());
 		free(substituted);
 	} else {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid Args"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Invalid Args"));
 	}
 }
 
 JS_PCRE_GET_PROPERTY_IMPL(GetProperty)
 {
 	HandleScope handle_scope(info.GetIsolate());
-	String::Utf8Value str(property);
+	String::Utf8Value str(info.GetIsolate(), property);
 
 	if (!strcmp(js_safe_str(*str), "ready")) {
 		info.GetReturnValue().Set(true);
 	} else {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Bad property"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Bad property"));
 	}
 }
 

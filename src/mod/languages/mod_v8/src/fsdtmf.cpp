@@ -74,15 +74,15 @@ void *FSDTMF::Construct(const v8::FunctionCallbackInfo<Value>& info)
 	const char *dtmf_char;
 
 	if (info.Length() <= 0) {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid Args"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid Args").ToLocalChecked());
 		return NULL;
 	}
 
-	String::Utf8Value str(info[0]);
+	String::Utf8Value str(info.GetIsolate(), info[0]);
 	dtmf_char = *str;
 
 	if (info.Length() > 1) {
-		duration = info[1]->Int32Value();
+		duration = info[1]->Int32Value(info.GetIsolate()->GetCurrentContext()).ToChecked();
 		if (duration <= 0) {
 			duration = switch_core_default_dtmf_duration(0);
 		}
@@ -101,7 +101,7 @@ void *FSDTMF::Construct(const v8::FunctionCallbackInfo<Value>& info)
 		return obj;
 	}
 
-	info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Memory error"));
+	info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Memory error"));
 	return NULL;
 }
 
@@ -115,16 +115,16 @@ JS_DTMF_GET_PROPERTY_IMPL(GetProperty)
 		return;
 	}
 
-	String::Utf8Value str(property);
+	String::Utf8Value str(info.GetIsolate(), property);
 	const char *prop = js_safe_str(*str);
 
 	if (!strcmp(prop, "digit")) {
 		char tmp[2] = { obj->_dtmf->digit, '\0' };
-		info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), tmp));
+		info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), tmp).ToLocalChecked());
 	} else if (!strcmp(prop, "duration")) {
 		info.GetReturnValue().Set(Integer::New(info.GetIsolate(), obj->_dtmf->duration));
 	} else {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Bad property"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Bad property").ToLocalChecked());
 	}
 }
 
