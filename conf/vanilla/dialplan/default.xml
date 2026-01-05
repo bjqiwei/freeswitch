@@ -829,6 +829,12 @@
     </extension>
     -->
 
+    <extension name="nlp">
+      <condition field="destination_number" expression="^nlp$">
+      <action application="lua" data="nlp.lua"/>
+      </condition>
+    </extension>
+
     <extension name="enum">
       <condition field="${module_exists(mod_enum)}" expression="true"/>
       <condition field="destination_number" expression="^(.*)$">

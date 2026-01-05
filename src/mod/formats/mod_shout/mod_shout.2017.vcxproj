@@ -169,7 +169,7 @@
     <ProjectReference Include="..\..\..\..\libs\win32\libogg\libogg.2017.vcxproj">
       <Project>{0feeaec6-4399-4c46-b7db-62ece80d15b4}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\libs\win32\libshout\libshout.2017.vcxproj">
+    <ProjectReference Include="..\..\..\..\libs\win32\libshout\libshout.2019.vcxproj">
       <Project>{d3d8b329-20be-475e-9e83-653cea0e0ef5}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
@@ -177,7 +177,7 @@
       <Project>{419c8f80-d858-4b48-a25c-af4007608137}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\libs\win32\pthread\pthread.2017.vcxproj">
+    <ProjectReference Include="..\..\..\..\libs\win32\pthread\pthread.2019.vcxproj">
       <Project>{df018947-0fff-4eb3-bdee-441dc81da7a4}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

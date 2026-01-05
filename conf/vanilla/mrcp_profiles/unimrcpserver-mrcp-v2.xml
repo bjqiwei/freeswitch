@@ -1,0 +1,23 @@
+<include>
+ <profile name="unimrcpserver-mrcp2" version="2">
+   <param name="client-ip" value="$${local_ip_v4}"/>
+   <param name="client-port" value="8063"/>
+   <param name="server-ip" value="127.0.0.1"/>
+   <!--param name="server-ip" value="39.106.63.92"/-->
+   <param name="server-port" value="8060"/>
+   <param name="sip-transport" value="tcp"/>
+   <param name="ua-name" value="FreeSWITCH"/>
+   <param name="rtp-ip" value="$${local_ip_v4}"/>
+   <param name="rtp-port-min" value="4000"/>
+   <param name="rtp-port-max" value="5000"/>
+   <param name="rtcp" value="1"/>
+   <param name="rtcp-bye" value="2"/>
+   <param name="rtcp-tx-interval" value="5000"/>
+   <param name="rtcp-rx-resolution" value="1000"/>
+   <param name="codecs" value="PCMU PCMA L16/96/16000"/>
+   <synthparams>
+   </synthparams>
+   <recogparams>
+   </recogparams>
+ </profile>
+ </include>

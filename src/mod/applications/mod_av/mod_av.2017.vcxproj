@@ -205,10 +205,10 @@
     <ClCompile Include="mod_av.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\libs\win32\ffmpeg\ffmpeg.2017.vcxproj">
+    <ProjectReference Include="..\..\..\..\libs\win32\ffmpeg\ffmpeg.2019.vcxproj">
       <Project>{bc1fd72e-1cd5-4525-a7f5-17c5740bfded}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\w32\Library\FreeSwitchCore.2017.vcxproj">
+    <ProjectReference Include="..\..\..\..\w32\Library\FreeSwitchCore.2019.vcxproj">
       <Project>{202d7a4e-760d-4d0e-afa1-d7459ced30ff}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
