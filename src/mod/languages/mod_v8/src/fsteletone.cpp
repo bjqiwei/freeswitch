@@ -107,20 +107,20 @@ void *FSTeleTone::Construct(const v8::FunctionCallbackInfo<Value>& info)
 
 		if (!session_obj.IsEmpty()) {
 			if (!(jss = JSBase::GetInstance<FSSession>(session_obj)) || !jss->GetSession()) {
-				info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Cannot Find Session [1]"));
+				info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Cannot Find Session [1]"));
 				return NULL;
 			}
 		} else {
-			info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Cannot Find Session [2]"));
+			info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Cannot Find Session [2]"));
 			return NULL;
 		}
 	} else {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Missing Session Arg"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Missing Session Arg"));
 		return NULL;
 	}
 
 	if (info.Length() > 1) {
-		String::Utf8Value str(info[1]);
+		String::Utf8Value str(info.GetIsolate(), info[1]);
 		timer_name = js_safe_str(*str);
 	}
 
@@ -128,7 +128,7 @@ void *FSTeleTone::Construct(const v8::FunctionCallbackInfo<Value>& info)
 
 	if (!(tto = new FSTeleTone(info))) {
 		switch_core_destroy_memory_pool(&pool);
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Memory Error"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Memory Error"));
 		return NULL;
 	}
 
@@ -145,7 +145,7 @@ void *FSTeleTone::Construct(const v8::FunctionCallbackInfo<Value>& info)
 	} else {
 		switch_core_destroy_memory_pool(&pool);
 		delete tto;
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Raw codec activation failed"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Raw codec activation failed"));
 		return NULL;
 	}
 
@@ -174,7 +174,7 @@ JS_TELETONE_FUNCTION_IMPL(AddTone)
 		int x;
 		int nmax = info.Length();
 		const char *map_str;
-		String::Utf8Value str(info[0]);
+		String::Utf8Value str(info.GetIsolate(), info[0]);
 		map_str = js_safe_str(*str);
 
 		if ( TELETONE_MAX_TONES < nmax ) {
@@ -182,7 +182,7 @@ JS_TELETONE_FUNCTION_IMPL(AddTone)
 		}
 
 		for (x = 1; x < nmax; x++) {
-			String::Utf8Value fval(info[x]);
+			String::Utf8Value fval(info.GetIsolate(), info[x]);
 			if (*fval) {
 				_ts.TONES[(int) *map_str].freqs[x - 1] = strtod(*fval, NULL);
 			}
@@ -190,7 +190,7 @@ JS_TELETONE_FUNCTION_IMPL(AddTone)
 		return;
 	}
 
-	info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid arguments"));
+	info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Invalid arguments"));
 }
 
 JS_TELETONE_FUNCTION_IMPL(OnDTMF)
@@ -229,8 +229,8 @@ JS_TELETONE_FUNCTION_IMPL(Generate)
 		switch_channel_t *channel;
 
 		if (info.Length() > 1) {
-			if (!info[1]->IsInt32() || !(loops = info[1]->Int32Value())) {
-				info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Cannot get second argument (should be int)"));
+			if (!info[1]->IsInt32() || !(loops = info[1]->Int32Value(info.GetIsolate()->GetCurrentContext()).ToChecked())) {
+				info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Cannot get second argument (should be int)"));
 				return;
 			}
 			loops--;
@@ -243,7 +243,7 @@ JS_TELETONE_FUNCTION_IMPL(Generate)
 		_ts.debug = 1;
 		_ts.debug_stream = switch_core_get_console();
 
-		String::Utf8Value str(info[0]);
+		String::Utf8Value str(info.GetIsolate(), info[0]);
 		script = js_safe_str(*str);
 		teletone_run(&_ts, script);
 
@@ -273,16 +273,16 @@ JS_TELETONE_FUNCTION_IMPL(Generate)
 					Handle<Value> aargv[4];
 
 					switch_channel_dequeue_dtmf_string(channel, dtmf, sizeof(dtmf));
-					aargv[aargc++] = String::NewFromUtf8(info.GetIsolate(), dtmf);
+					aargv[aargc++] = String::NewFromUtf8Literal(info.GetIsolate(), dtmf);
 
 					if (!_arg.IsEmpty()) {
 						aargv[aargc++] = Local<Value>::New(info.GetIsolate(), _arg);
 					}
 
 					Handle<Function> func = Local<Function>::New(info.GetIsolate(), _function);
-					Handle<Value> res = func->Call(info.GetIsolate()->GetCurrentContext()->Global(), aargc, aargv);
+					Handle<Value> res = func->Call(info.GetIsolate()->GetCurrentContext(), info.GetIsolate()->GetCurrentContext()->Global(), aargc, aargv).ToLocalChecked();
 
-					String::Utf8Value tmp(res);
+					String::Utf8Value tmp(info.GetIsolate(), res);
 					ret = js_safe_str(*tmp);
 
 					if (strcmp(ret, "true") && strcmp(ret, "undefined")) {
@@ -324,12 +324,12 @@ JS_TELETONE_FUNCTION_IMPL(Generate)
 		return;
 	}
 
-	info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid arguments"));
+	info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Invalid arguments"));
 }
 
 JS_TELETONE_GET_PROPERTY_IMPL(GetNameProperty)
 {
-	info.GetReturnValue().Set(String::NewFromUtf8(info.GetIsolate(), "TeleTone"));
+	info.GetReturnValue().Set(String::NewFromUtf8Literal(info.GetIsolate(), "TeleTone"));
 }
 
 static const js_function_t teletone_methods[] = {

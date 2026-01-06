@@ -78,15 +78,15 @@ size_t FSCURL::FileCallback(void *ptr, size_t size, size_t nmemb, void *data)
 	if (!func.IsEmpty()) {
 		char *ret;
 		if (ptr) {
-			argv[argc++] = String::NewFromUtf8(obj->GetIsolate(), (char *)ptr);
+			argv[argc++] = String::NewFromUtf8(obj->GetIsolate(), (const char *)ptr).ToLocalChecked();
 		} else {
-			argv[argc++] = String::NewFromUtf8(obj->GetIsolate(), "");
+			argv[argc++] = String::NewFromUtf8Literal(obj->GetIsolate(), "");
 		}
 		if (!obj->_user_data.IsEmpty()) {
 			argv[argc++] = Local<Value>::New(obj->GetIsolate(), Persistent<Value>::Cast(obj->_user_data));
 		}
 
-		Handle<Value> res = func->Call(obj->GetIsolate()->GetCurrentContext()->Global(), argc, argv);
+		Handle<Value> res = func->Call(obj->GetIsolate()->GetCurrentContext(), obj->GetIsolate()->GetCurrentContext()->Global(), argc, argv).ToLocalChecked();
 
 		if (!res.IsEmpty()){
 			obj->_ret.Reset(obj->GetIsolate(), res);
@@ -94,7 +94,7 @@ size_t FSCURL::FileCallback(void *ptr, size_t size, size_t nmemb, void *data)
 			obj->_ret.Reset();
 		}
 
-		String::Utf8Value str(Local<Value>::New(obj->GetIsolate(), res));
+		String::Utf8Value str(obj->GetIsolate(), Local<Value>::New(obj->GetIsolate(), res));
 
 		if ((ret = *str)) {
 			if (!strcmp(ret, "true") || !strcmp(ret, "undefined")) {
@@ -129,12 +129,12 @@ JS_CURL_FUNCTION_IMPL(Run)
 	char ct[80] = "Content-Type: application/x-www-form-urlencoded";
 
 	if (info.Length() < 2) {
-		info.GetIsolate()->ThrowException(String::NewFromUtf8(info.GetIsolate(), "Invalid arguments"));
+		info.GetIsolate()->ThrowException(String::NewFromUtf8Literal(info.GetIsolate(), "Invalid arguments"));
 		return;
 	}
 
-	String::Utf8Value str1(info[0]);
-	String::Utf8Value str2(info[1]);
+	String::Utf8Value str1(info.GetIsolate(), info[0]);
+	String::Utf8Value str2(info.GetIsolate(), info[1]);
 
 	method = js_safe_str(*str1);
 	url = js_safe_str(*str2);
@@ -146,7 +146,7 @@ JS_CURL_FUNCTION_IMPL(Run)
 	}
 
 	if (info.Length() > 2) {
-		String::Utf8Value str3(info[2]);
+		String::Utf8Value str3(info.GetIsolate(), info[2]);
 		data = js_safe_str(*str3);
 	}
 
@@ -162,7 +162,7 @@ JS_CURL_FUNCTION_IMPL(Run)
 	}
 
 	if (info.Length() > 5) {
-		String::Utf8Value str4(info[5]);
+		String::Utf8Value str4(info.GetIsolate(), info[5]);
 		cred = js_safe_str(*str4);
 		if (cred.length() > 0) {
 			switch_curl_easy_setopt(_curl_handle, CURLOPT_HTTPAUTH, (long)CURLAUTH_ANY);
@@ -171,14 +171,14 @@ JS_CURL_FUNCTION_IMPL(Run)
 	}
 
 	if (info.Length() > 6) {
-		timeout = info[6]->Int32Value();
+		timeout = info[6]->Int32Value(info.GetIsolate()->GetCurrentContext()).FromJust();
 		if (timeout > 0) {
 			switch_curl_easy_setopt(_curl_handle, CURLOPT_TIMEOUT, timeout);
 		}
 	}
 
 	if (info.Length() > 7) {
-		String::Utf8Value str5(info[7]);
+		String::Utf8Value str5(info.GetIsolate(), info[7]);
 		const char *content_type = js_safe_str(*str5);
 		switch_snprintf(ct, sizeof(ct), "Content-Type: %s", content_type);
 	}
@@ -221,7 +221,7 @@ JS_CURL_FUNCTION_IMPL(Run)
 	switch_safe_free(durl);
 
 	if (!_ret.IsEmpty()) {
-		info.GetReturnValue().Set(_ret);
+		info.GetReturnValue().Set(_ret.Get(info.GetIsolate()));
 		_ret.Reset();
 	}
 }

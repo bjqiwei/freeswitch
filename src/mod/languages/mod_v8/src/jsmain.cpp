@@ -179,7 +179,7 @@ JSMain::~JSMain(void)
 const string JSMain::GetExceptionInfo(Isolate* isolate, TryCatch* try_catch)
 {
 	HandleScope handle_scope(isolate);
-	String::Utf8Value exception(try_catch->Exception());
+	String::Utf8Value exception(isolate, try_catch->Exception());
 	const char *exception_string = js_safe_str(*exception);
 	Handle<Message> message = try_catch->Message();
 	string res;
@@ -188,16 +188,16 @@ const string JSMain::GetExceptionInfo(Isolate* isolate, TryCatch* try_catch)
 		// V8 didn't provide any extra information about this error; just return the exception.
 		res = exception_string;
 	} else {
-		String::Utf8Value filename(message->GetScriptResourceName());
+		String::Utf8Value filename(isolate, message->GetScriptResourceName());
 		const char *filename_string = js_safe_str(*filename);
-		int linenum = message->GetLineNumber();
+		int linenum = message->GetLineNumber(isolate->GetCurrentContext()).ToChecked();
 
 		ostringstream ss;
 
 		ss << filename_string << ":" << linenum << ": " << exception_string << "\r\n";
 
 		// Print line of source code.
-		String::Utf8Value sourceline(message->GetSourceLine());
+		String::Utf8Value sourceline(isolate, message->GetSourceLine(isolate->GetCurrentContext()).ToLocalChecked());
 		const char *sourceline_string = js_safe_str(*sourceline);
 
 		ss << sourceline_string << "\r\n";
@@ -225,7 +225,7 @@ void JSMain::Include(const v8::FunctionCallbackInfo<Value>& args)
 {
 	for (int i = 0; i < args.Length(); i++) {
 		HandleScope handle_scope(args.GetIsolate());
-		String::Utf8Value str(args[i]);
+		String::Utf8Value str(args.GetIsolate(), args[i]);
 
 		// load_file loads the file with this name into a string
 		string js_file = LoadFileToString(js_safe_str(*str));
@@ -239,7 +239,7 @@ void JSMain::Include(const v8::FunctionCallbackInfo<Value>& args)
 				args.GetReturnValue().Set(false);
 			}
 			else {
-				args.GetReturnValue().Set(script.ToLocalChecked()->Run());
+				args.GetReturnValue().Set(script.ToLocalChecked()->Run(args.GetIsolate()->GetCurrentContext()).ToLocalChecked());
 			}
 #else
 			Handle<String> source = String::NewFromUtf8(args.GetIsolate(), js_file.c_str());
@@ -257,7 +257,7 @@ void JSMain::Include(const v8::FunctionCallbackInfo<Value>& args)
 void JSMain::Log(const v8::FunctionCallbackInfo<Value>& args)
 {
 	HandleScope handle_scope(args.GetIsolate());
-	String::Utf8Value str(args[0]);
+	String::Utf8Value str(args.GetIsolate(), args[0]);
 
 	printf("%s\r\n", js_safe_str(*str));
 
@@ -288,13 +288,13 @@ const string JSMain::ExecuteString(const string& scriptData, const string& fileN
 			isolate->SetData(0, this);
 
 			Handle<ObjectTemplate> global = ObjectTemplate::New(isolate);
-			global->Set(String::NewFromUtf8(isolate, "include"), FunctionTemplate::New(isolate, Include));
-			global->Set(String::NewFromUtf8(isolate, "require"), FunctionTemplate::New(isolate, Include));
-			global->Set(String::NewFromUtf8(isolate, "log"), FunctionTemplate::New(isolate, Log));
+			global->Set(String::NewFromUtf8(isolate, "include").ToLocalChecked(), FunctionTemplate::New(isolate, Include));
+			global->Set(String::NewFromUtf8(isolate, "require").ToLocalChecked(), FunctionTemplate::New(isolate, Include));
+			global->Set(String::NewFromUtf8(isolate, "log").ToLocalChecked(), FunctionTemplate::New(isolate, Log));
 
 			for (size_t i = 0; i < extenderFunctions->size(); i++) {
 				js_function_t *proc = (*extenderFunctions)[i];
-				global->Set(String::NewFromUtf8(isolate, proc->name), FunctionTemplate::New(isolate, proc->func));
+				global->Set(String::NewFromUtf8(isolate, proc->name).ToLocalChecked(), FunctionTemplate::New(isolate, proc->func));
 			}
 
 			// Create a new context.
@@ -340,7 +340,7 @@ const string JSMain::ExecuteString(const string& scriptData, const string& fileN
 				Handle<Value> result;
 
 				if (!script.IsEmpty()) {
-				    result = script.ToLocalChecked()->Run();
+				    result = script.ToLocalChecked()->Run(isolate->GetCurrentContext()).ToLocalChecked();
 				}
 #else
 				// Run the script
@@ -356,7 +356,7 @@ const string JSMain::ExecuteString(const string& scriptData, const string& fileN
 					}
 
 					// return result as string.
-					String::Utf8Value ascii(result);
+					String::Utf8Value ascii(isolate, result);
 					if (*ascii) {
 						res = *ascii;
 					}
@@ -441,13 +441,13 @@ Isolate *JSMain::GetIsolate()
 }
 
 #if defined(V8_MAJOR_VERSION) && V8_MAJOR_VERSION >=5
-void JSMain::Initialize(v8::Platform **platform)
+void JSMain::Initialize(std::unique_ptr<v8::Platform>* platform)
 {
 	V8::InitializeICUDefaultLocation(SWITCH_GLOBAL_dirs.mod_dir);
 	V8::InitializeExternalStartupData(SWITCH_GLOBAL_dirs.mod_dir);
 
-	*platform = v8::platform::CreateDefaultPlatform();
-	V8::InitializePlatform(*platform);
+	*platform = v8::platform::NewDefaultPlatform();
+	V8::InitializePlatform((*platform).get());
 	V8::Initialize();
 }
 #else
@@ -464,7 +464,9 @@ void JSMain::Dispose()
 	v8::Isolate::GetCurrent()->LowMemoryNotification();
 	while (!v8::Isolate::GetCurrent()->IdleNotificationDeadline(0.500)) {}
 	V8::Dispose();
-	V8::ShutdownPlatform();
+#if V8_MAJOR_VERSION >=11
+	V8::DisposePlatform();
+#endif
 #else
 	V8::LowMemoryNotification();
 	while (!V8::IdleNotification()) {}
@@ -595,13 +597,13 @@ char *JSMain::GetStackInfo(Isolate *isolate, int *lineNumber)
 	Local<StackTrace> stFile = StackTrace::CurrentStackTrace(isolate, 1, StackTrace::kScriptName);
 
 	if (!stFile.IsEmpty()) {
-		Local<StackFrame> sf = stFile->GetFrame(0);
+		Local<StackFrame> sf = stFile->GetFrame(isolate,0);
 
 		if (!sf.IsEmpty()) {
 			Local<String> fn = sf->GetScriptName();
 
 			if (!fn.IsEmpty()) {
-				String::Utf8Value str(fn);
+				String::Utf8Value str(isolate,fn);
 
 				if (*str) {
 					js_strdup(ret, *str); // We must dup here
@@ -622,7 +624,7 @@ char *JSMain::GetStackInfo(Isolate *isolate, int *lineNumber)
 		Local<StackTrace> stLine = StackTrace::CurrentStackTrace(isolate, 1, StackTrace::kLineNumber);
 
 		if (!stLine.IsEmpty()) {
-			Local<StackFrame> sf = stLine->GetFrame(0);
+			Local<StackFrame> sf = stLine->GetFrame(isolate, 0);
 
 			if (!sf.IsEmpty()) {
 				*lineNumber = sf->GetLineNumber();

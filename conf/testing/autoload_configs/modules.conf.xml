@@ -29,6 +29,7 @@
     <load module="mod_opusfile"/>
     <load module="mod_local_stream"/>
     <load module="mod_tone_stream"/>
+	<load module="mod_v8"/>
     <load module="mod_lua"/>
     <load module="mod_xml_curl"/>
     <load module="mod_say_en"/>
