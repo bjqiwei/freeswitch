@@ -77,7 +77,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\unimrcp\libs\apr\include;$(SolutionDir)libs\unimrcp\libs\apr-util\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -87,6 +87,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
+      <AdditionalDependencies>Rpcrt4.lib;Mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -94,7 +95,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\unimrcp\libs\apr\include;$(SolutionDir)libs\unimrcp\libs\apr-util\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -105,11 +106,12 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalDependencies>Rpcrt4.lib;Mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\unimrcp\libs\apr\include;$(SolutionDir)libs\unimrcp\libs\apr-util\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -119,6 +121,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
+      <AdditionalDependencies>Rpcrt4.lib;Mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -126,7 +129,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;APT_STATIC_LIB;MPF_STATIC_LIB;MRCP_STATIC_LIB;LIBSOFIA_SIP_UA_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\unimrcp\libs\apr\include;$(SolutionDir)libs\unimrcp\libs\apr-util\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -137,6 +140,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalDependencies>Rpcrt4.lib;Mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -177,8 +181,8 @@
       <Project>{1c320193-46a6-4b34-9c56-8ab584fc1b56}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\libs\unimrcp\libs\sofia-sip\win32\libsofia-sip-ua\libsofia_sip_ua.vcxproj">
-      <Project>{0d85d39a-c7fb-4c52-a541-73665fb478e6}</Project>
+    <ProjectReference Include="..\..\..\..\libs\unimrcp\libs\sofia-sip\win32\libsofia-sip-ua-static\libsofia_sip_ua_static.vcxproj">
+      <Project>{5a6e80ab-5335-4f14-9030-d4da3a13109b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\libs\unimrcp\libs\sofia-sip\win32\pthread\libpthread.vcxproj">
       <Project>{3bc0983b-cab6-4ec3-bfc6-3bf6f5f38ffd}</Project>
